@@ -4,7 +4,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/okta/okta-sdk-golang/okta/query"
+	"github.com/okta/okta-sdk-golang/v2/okta/query"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
@@ -44,7 +44,9 @@ func dataSourceGroupRead(d *schema.ResourceData, m interface{}) error {
 
 func findGroup(name string, d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
-	groups, _, err := client.Group.ListGroups(&query.Params{Q: name})
+	context := getOktaContextFromMetadata(m)
+
+	groups, _, err := client.Group.ListGroups(context, &query.Params{Q: name})
 	if err != nil {
 		return fmt.Errorf("failed to query for groups: %v", err)
 	} else if len(groups) < 1 {

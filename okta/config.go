@@ -5,14 +5,10 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
-	"github.com/terraform-providers/terraform-provider-okta/sdk"
-
-	articulateOkta "github.com/articulate/oktasdk-go/okta"
 	"github.com/hashicorp/go-cleanhttp"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/logging"
-	"github.com/okta/okta-sdk-golang/okta"
+	"github.com/okta/okta-sdk-golang/v2/okta"
 )
 
 func (adt *AddHeaderTransport) RoundTrip(req *http.Request) (*http.Response, error) {
@@ -28,19 +24,17 @@ type (
 
 	// Config contains our provider schema values and Okta clients
 	Config struct {
-		orgName      string
-		domain       string
-		apiToken     string
-		retryCount   int
-		parallelism  int
-		waitForReset bool
-		backoff      bool
-		minWait      int
-		maxWait      int
+		orgName     string
+		domain      string
+		apiToken    string
+		retryCount  int
+		parallelism int
+		timeout     int
+		context     context.Context
 
-		articulateOktaClient *articulateOkta.Client
-		oktaClient           *okta.Client
-		supplementClient     *sdk.ApiSupplement
+		// articulateOktaClient *articulateOkta.Client
+		oktaClient *okta.Client
+		// supplementClient *sdk.ApiSupplement
 	}
 )
 
@@ -56,39 +50,40 @@ func (c *Config) loadAndValidate() error {
 		return fmt.Errorf("[ERROR] org_name is empty!")
 	}
 
-	articulateClient, err := articulateOkta.NewClientWithDomain(httpClient, c.orgName, c.domain, c.apiToken)
+	// articulateClient, err := articulateOkta.NewClientWithDomain(httpClient, c.orgName, c.domain, c.apiToken)
 
 	// add the Articulate Okta client object to Config
-	c.articulateOktaClient = articulateClient
+	// c.articulateOktaClient = articulateClient
 
-	if err != nil {
-		return fmt.Errorf("[ERROR] Error creating Articulate Okta client: %v", err)
-	}
+	// if err != nil {
+	// 	return fmt.Errorf("[ERROR] Error creating Articulate Okta client: %v", err)
+	// }
 
 	orgUrl := fmt.Sprintf("https://%v.%v", c.orgName, c.domain)
 
-	client, err := okta.NewClient(
-		context.Background(),
+	ctx, client, err := okta.NewClient(
+		context.TODO(),
 		okta.WithOrgUrl(orgUrl),
 		okta.WithToken(c.apiToken),
 		okta.WithCache(false),
-		okta.WithBackoff(c.backoff),
-		okta.WithMinWait(time.Duration(c.minWait)*time.Second),
-		okta.WithMaxWait(time.Duration(c.maxWait)*time.Second),
-		okta.WithRetries(int32(c.retryCount)),
+		okta.WithRequestTimeout(0),
+		okta.WithRateLimitMaxRetries(int32(c.retryCount)),
 		okta.WithHttpClient(*httpClient),
 	)
+
 	if err != nil {
 		return err
 	}
-	c.supplementClient = &sdk.ApiSupplement{
-		BaseURL:         fmt.Sprintf("https://%s.%s", c.orgName, c.domain),
-		Client:          httpClient,
-		Token:           c.apiToken,
-		RequestExecutor: client.GetRequestExecutor(),
-	}
+
+	// c.supplementClient = &sdk.ApiSupplement{
+	// 	BaseURL:         fmt.Sprintf("https://%s.%s", c.orgName, c.domain),
+	// 	Client:          httpClient,
+	// 	Token:           c.apiToken,
+	// 	RequestExecutor: client.GetRequestExecutor(),
+	// }
 
 	// add the Okta SDK client object to Config
 	c.oktaClient = client
+	c.context = ctx
 	return nil
 }

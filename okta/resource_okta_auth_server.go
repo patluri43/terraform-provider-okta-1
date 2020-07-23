@@ -6,7 +6,7 @@ import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
 
-	"github.com/okta/okta-sdk-golang/okta"
+	"github.com/okta/okta-sdk-golang/v2/okta"
 	"github.com/terraform-providers/terraform-provider-okta/sdk"
 )
 
@@ -72,10 +72,12 @@ func resourceAuthServer() *schema.Resource {
 }
 
 func handleAuthServerLifecycle(d *schema.ResourceData, m interface{}) error {
-	client := getSupplementFromMetadata(m)
+	//client := getSupplementFromMetadata(m)
+
+	client := getOktaClientFromMetadata(m)
 
 	if d.Get("status").(string) == "ACTIVE" {
-		_, err := client.ActivateAuthorizationServer(d.Id())
+		_, err := client.AuthorizationServer.ActivateAuthorizationServer(getOktaContextFromMetadata(m), d.Id())
 		return err
 	}
 

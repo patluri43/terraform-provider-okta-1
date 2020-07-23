@@ -3,8 +3,9 @@ package okta
 import (
 	"fmt"
 
+	"github.com/okta/okta-sdk-golang/v2/okta"
+
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/terraform-providers/terraform-provider-okta/sdk"
 )
 
 func resourceGroupRoles() *schema.Resource {
@@ -37,14 +38,13 @@ func resourceGroupRoles() *schema.Resource {
 	}
 }
 
-func buildGroupRole(d *schema.ResourceData, role string) *sdk.Role {
-	return &sdk.Role{
-		AssignmentType: "GROUP",
-		Type:           role,
+func buildGroupRole(d *schema.ResourceData, role string) okta.AssignRoleRequest {
+	return okta.AssignRoleRequest{
+		Type: role,
 	}
 }
 
-func containsRole(roles []*sdk.Role, roleName string) bool {
+func containsRole(roles []*okta.Role, roleName string) bool {
 	for _, role := range roles {
 		if role.Type == roleName {
 			return true
@@ -64,7 +64,8 @@ func resourceGroupRolesCreate(d *schema.ResourceData, m interface{}) error {
 
 	for _, role := range adminRoles {
 		groupRole := buildGroupRole(d, role)
-		_, _, err := getSupplementFromMetadata(m).CreateAdminRole(groupId, groupRole, nil)
+
+		_, _, err := getOktaClientFromMetadata(m).Group.AssignRoleToGroup(getOktaContextFromMetadata(m), groupId, groupRole, nil)
 		if err != nil {
 			return err
 		}
@@ -77,7 +78,9 @@ func resourceGroupRolesCreate(d *schema.ResourceData, m interface{}) error {
 
 func resourceGroupRolesRead(d *schema.ResourceData, m interface{}) error {
 	groupId := d.Get("group_id").(string)
-	existingRoles, resp, err := getSupplementFromMetadata(m).ListAdminRoles(groupId, nil)
+	existingRoles, resp, err := getOktaClientFromMetadata(m).Group.ListGroupAssignedRoles(getOktaContextFromMetadata(m), groupId, nil)
+
+	// getSupplementFromMetadata(m).ListAdminRoles(groupId, nil)
 
 	if is404(resp.StatusCode) {
 		d.SetId("")
@@ -99,9 +102,9 @@ func resourceGroupRolesRead(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceGroupRolesUpdate(d *schema.ResourceData, m interface{}) error {
-	client := getSupplementFromMetadata(m)
+	// client := getSupplementFromMetadata(m)
 	groupId := d.Get("group_id").(string)
-	existingRoles, _, err := client.ListAdminRoles(groupId, nil)
+	existingRoles, _, err := getOktaClientFromMetadata(m).Group.ListGroupAssignedRoles(getOktaContextFromMetadata(m), groupId, nil)
 	if err != nil {
 		return err
 	}
@@ -111,7 +114,7 @@ func resourceGroupRolesUpdate(d *schema.ResourceData, m interface{}) error {
 
 	for _, role := range rolesToAdd {
 		groupRole := buildGroupRole(d, role)
-		_, _, err := client.CreateAdminRole(groupId, groupRole, nil)
+		_, _, err := getOktaClientFromMetadata(m).Group.AssignRoleToGroup(getOktaContextFromMetadata(m), groupId, groupRole, nil)
 
 		if err != nil {
 			return err
@@ -119,7 +122,7 @@ func resourceGroupRolesUpdate(d *schema.ResourceData, m interface{}) error {
 	}
 
 	for _, roleId := range rolesToRemove {
-		_, err := client.DeleteAdminRole(groupId, roleId)
+		_, err := getOktaClientFromMetadata(m).Group.RemoveRoleFromGroup(getOktaContextFromMetadata(m), groupId, roleId)
 
 		if err != nil {
 			return err
@@ -130,15 +133,15 @@ func resourceGroupRolesUpdate(d *schema.ResourceData, m interface{}) error {
 }
 
 func resourceGroupRolesDelete(d *schema.ResourceData, m interface{}) error {
-	client := getSupplementFromMetadata(m)
+	// client := getSupplementFromMetadata(m)
 	groupId := d.Get("group_id").(string)
-	existingRoles, _, err := client.ListAdminRoles(groupId, nil)
+	existingRoles, _, err := getOktaClientFromMetadata(m).Group.ListGroupAssignedRoles(getOktaContextFromMetadata(m), groupId, nil)
 	if err != nil {
 		return err
 	}
 
 	for _, role := range existingRoles {
-		_, err := client.DeleteAdminRole(groupId, role.Id)
+		_, err := getOktaClientFromMetadata(m).Group.RemoveRoleFromGroup(getOktaContextFromMetadata(m), groupId, role.Id)
 
 		if err != nil {
 			return err
@@ -148,7 +151,7 @@ func resourceGroupRolesDelete(d *schema.ResourceData, m interface{}) error {
 	return nil
 }
 
-func splitRoles(existingRoles []*sdk.Role, expectedRoles []string) (rolesToAdd []string, rolesToRemove []string) {
+func splitRoles(existingRoles []*okta.Role, expectedRoles []string) (rolesToAdd []string, rolesToRemove []string) {
 	for _, roleName := range expectedRoles {
 		if !containsRole(existingRoles, roleName) {
 			rolesToAdd = append(rolesToAdd, roleName)

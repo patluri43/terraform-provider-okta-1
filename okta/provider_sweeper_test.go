@@ -6,16 +6,16 @@ import (
 	"strconv"
 	"testing"
 
-	articulateOkta "github.com/articulate/oktasdk-go/okta"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/resource"
-	"github.com/okta/okta-sdk-golang/okta"
-	sdk "github.com/terraform-providers/terraform-provider-okta/sdk"
+	"github.com/okta/okta-sdk-golang/v2/okta"
+	"github.com/terraform-providers/terraform-provider-okta/sdk"
+	// sdk "github.com/terraform-providers/terraform-provider-okta/sdk"
 )
 
 type testClient struct {
-	oktaClient    *okta.Client
-	artClient     *articulateOkta.Client
-	apiSupplement *sdk.ApiSupplement
+	oktaClient *okta.Client
+	// artClient     *articulateOkta.Client
+	// apiSupplement *sdk.ApiSupplement
 }
 
 var testResourcePrefix = "testAcc"
@@ -87,13 +87,14 @@ func sharedClient(region string) (*articulateOkta.Client, *okta.Client, *sdk.Api
 
 	orgURL := fmt.Sprintf("https://%v.%v", c.orgName, c.domain)
 
-	client, err := okta.NewClient(
-		context.Background(),
+	_, client, err := okta.NewClient(
+		context.TODO(),
 		okta.WithOrgUrl(orgURL),
 		okta.WithToken(c.apiToken),
-		okta.WithBackoff(true),
-		okta.WithRetries(20),
+		okta.WithRequestTimeout(0),
+		okta.WithRateLimitMaxRetries(20),
 	)
+
 	if err != nil {
 		return articulateClient, client, nil, err
 	}

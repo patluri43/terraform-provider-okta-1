@@ -2,8 +2,8 @@ package okta
 
 import (
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/okta/okta-sdk-golang/okta"
-	"github.com/okta/okta-sdk-golang/okta/query"
+	"github.com/okta/okta-sdk-golang/v2/okta"
+	"github.com/okta/okta-sdk-golang/v2/okta/query"
 )
 
 func resourceAppBasicAuth() *schema.Resource {
@@ -34,10 +34,12 @@ func resourceAppBasicAuth() *schema.Resource {
 
 func resourceAppBasicAuthCreate(d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
+	context := getOktaContextFromMetadata(m)
+
 	app := buildAppBasicAuth(d, m)
 	activate := d.Get("status").(string) == "ACTIVE"
 	params := &query.Params{Activate: &activate}
-	_, _, err := client.Application.CreateApplication(app, params)
+	_, _, err := client.Application.CreateApplication(context, app, params)
 
 	if err != nil {
 		return err
@@ -76,8 +78,10 @@ func resourceAppBasicAuthRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceAppBasicAuthUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
+	context := getOktaContextFromMetadata(m)
+
 	app := buildAppBasicAuth(d, m)
-	_, _, err := client.Application.UpdateApplication(d.Id(), app)
+	_, _, err := client.Application.UpdateApplication(context, d.Id(), app)
 
 	if err != nil {
 		return err
@@ -101,12 +105,14 @@ func resourceAppBasicAuthUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAppBasicAuthDelete(d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
-	_, err := client.Application.DeactivateApplication(d.Id())
+	context := getOktaContextFromMetadata(m)
+
+	_, err := client.Application.DeactivateApplication(context, d.Id())
 	if err != nil {
 		return err
 	}
 
-	_, err = client.Application.DeleteApplication(d.Id())
+	_, err = client.Application.DeleteApplication(context, d.Id())
 
 	return err
 }

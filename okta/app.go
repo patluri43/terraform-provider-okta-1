@@ -1,13 +1,14 @@
 package okta
 
 import (
+	"context"
 	"encoding/json"
 	"sync"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/okta/okta-sdk-golang/okta"
-	"github.com/okta/okta-sdk-golang/okta/query"
+	"github.com/okta/okta-sdk-golang/v2/okta"
+	"github.com/okta/okta-sdk-golang/v2/okta/query"
 )
 
 var appUserResource = &schema.Resource{
@@ -219,7 +220,7 @@ func updateAppById(id string, m interface{}, app okta.App) error {
 }
 
 func handleAppGroups(id string, d *schema.ResourceData, client *okta.Client) []func() error {
-	existingGroup, _, _ := client.Application.ListApplicationGroupAssignments(id, &query.Params{})
+	existingGroup, _, _ := client.Application.ListApplicationGroupAssignments(context.TODO(), id, &query.Params{})
 	var (
 		asyncActionList []func() error
 		groupIdList     []string
@@ -235,7 +236,7 @@ func handleAppGroups(id string, d *schema.ResourceData, client *okta.Client) []f
 
 			if !containsGroup(existingGroup, groupID) {
 				asyncActionList = append(asyncActionList, func() error {
-					_, resp, err := client.Application.CreateApplicationGroupAssignment(id, groupID, okta.ApplicationGroupAssignment{})
+					_, resp, err := client.Application.CreateApplicationGroupAssignment(context.TODO(), id, groupID, okta.ApplicationGroupAssignment{})
 					return responseErr(resp, err)
 				})
 			}
@@ -246,7 +247,7 @@ func handleAppGroups(id string, d *schema.ResourceData, client *okta.Client) []f
 		if !contains(groupIdList, group.Id) {
 			groupID := group.Id
 			asyncActionList = append(asyncActionList, func() error {
-				return suppressErrorOn404(client.Application.DeleteApplicationGroupAssignment(id, groupID))
+				return suppressErrorOn404(client.Application.DeleteApplicationGroupAssignment(context.TODO(), id, groupID))
 			})
 		}
 	}

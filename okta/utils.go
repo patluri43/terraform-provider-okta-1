@@ -1,6 +1,7 @@
 package okta
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -9,10 +10,8 @@ import (
 	"strings"
 	"unicode"
 
-	"github.com/okta/okta-sdk-golang/okta"
-	"github.com/terraform-providers/terraform-provider-okta/sdk"
+	"github.com/okta/okta-sdk-golang/v2/okta"
 
-	articulateOkta "github.com/articulate/oktasdk-go/okta"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 )
 
@@ -322,17 +321,21 @@ func getParallelismFromMetadata(meta interface{}) int {
 	return meta.(*Config).parallelism
 }
 
-func getClientFromMetadata(meta interface{}) *articulateOkta.Client {
-	return meta.(*Config).articulateOktaClient
-}
+// func getClientFromMetadata(meta interface{}) *articulateOkta.Client {
+// 	return meta.(*Config).articulateOktaClient
+// }
 
 func getOktaClientFromMetadata(meta interface{}) *okta.Client {
 	return meta.(*Config).oktaClient
 }
 
-func getSupplementFromMetadata(meta interface{}) *sdk.ApiSupplement {
-	return meta.(*Config).supplementClient
+func getOktaContextFromMetadata(meta interface{}) context.Context {
+	return meta.(*Config).context
 }
+
+// func getSupplementFromMetadata(meta interface{}) *sdk.ApiSupplement {
+// 	return meta.(*Config).supplementClient
+// }
 
 func getRequestExecutor(m interface{}) *okta.RequestExecutor {
 	return getOktaClientFromMetadata(m).GetRequestExecutor()

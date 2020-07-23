@@ -6,8 +6,8 @@ import (
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
 	"github.com/hashicorp/terraform-plugin-sdk/helper/validation"
-	"github.com/okta/okta-sdk-golang/okta"
-	"github.com/okta/okta-sdk-golang/okta/query"
+	"github.com/okta/okta-sdk-golang/v2/okta"
+	"github.com/okta/okta-sdk-golang/v2/okta/query"
 	"github.com/terraform-providers/terraform-provider-okta/sdk"
 )
 
@@ -304,6 +304,8 @@ func validateGrantTypes(d *schema.ResourceData) error {
 
 func resourceAppOAuthCreate(d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
+	context := getOktaContextFromMetadata(m)
+
 	if err := validateGrantTypes(d); err != nil {
 		return err
 	}
@@ -312,7 +314,7 @@ func resourceAppOAuthCreate(d *schema.ResourceData, m interface{}) error {
 	desiredStatus := d.Get("status").(string)
 	activate := desiredStatus == "ACTIVE"
 	params := &query.Params{Activate: &activate}
-	_, _, err := client.Application.CreateApplication(app, params)
+	_, _, err := client.Application.CreateApplication(context, app, params)
 
 	if err != nil {
 		return err
@@ -405,12 +407,14 @@ func resourceAppOAuthRead(d *schema.ResourceData, m interface{}) error {
 
 func resourceAppOAuthUpdate(d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
+	context := getOktaContextFromMetadata(m)
+
 	if err := validateGrantTypes(d); err != nil {
 		return err
 	}
 
 	app := buildAppOAuth(d, m)
-	if _, _, err := client.Application.UpdateApplication(d.Id(), app); err != nil {
+	if _, _, err := client.Application.UpdateApplication(context, d.Id(), app); err != nil {
 		return err
 	}
 
@@ -428,15 +432,16 @@ func resourceAppOAuthUpdate(d *schema.ResourceData, m interface{}) error {
 
 func resourceAppOAuthDelete(d *schema.ResourceData, m interface{}) error {
 	client := getOktaClientFromMetadata(m)
+	context := getOktaContextFromMetadata(m)
 
 	if d.Get("status").(string) == "ACTIVE" {
-		_, err := client.Application.DeactivateApplication(d.Id())
+		_, err := client.Application.DeactivateApplication(context, d.Id())
 		if err != nil {
 			return err
 		}
 	}
 
-	_, err := client.Application.DeleteApplication(d.Id())
+	_, err := client.Application.DeleteApplication(context, d.Id())
 	return err
 }
 

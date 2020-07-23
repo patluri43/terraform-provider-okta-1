@@ -33,9 +33,11 @@ func dataSourcePolicyRead(d *schema.ResourceData, m interface{}) error {
 
 func setPolicyByName(d *schema.ResourceData, m interface{}, name string) error {
 	client := getClientFromMetadata(m)
+	context := getOktaContextFromMetadata(m)
+
 	ptype := d.Get("type").(string)
 
-	currentPolicies, _, err := client.Policies.GetPoliciesByType(ptype)
+	currentPolicies, _, err := client.Policies.GetPoliciesByType(context, ptype)
 	if err != nil {
 		return fmt.Errorf("Error Listing Policies in Okta: %v", err)
 	}

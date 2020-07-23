@@ -5,7 +5,7 @@ import (
 	"fmt"
 
 	"github.com/hashicorp/terraform-plugin-sdk/helper/schema"
-	"github.com/okta/okta-sdk-golang/okta/query"
+	"github.com/okta/okta-sdk-golang/v2/okta/query"
 	"github.com/terraform-providers/terraform-provider-okta/sdk"
 )
 
@@ -127,7 +127,9 @@ func dataSourceIdpSamlRead(d *schema.ResourceData, m interface{}) error {
 func getIdpById(m interface{}, id string) (*sdk.SAMLIdentityProvider, error) {
 	var idp sdk.SAMLIdentityProvider
 	client := getSupplementFromMetadata(m)
-	_, resp, err := client.GetIdentityProvider(id, &idp)
+	context := getOktaContextFromMetadata(m)
+
+	_, resp, err := client.GetIdentityProvider(context, id, &idp)
 
 	return &idp, responseErr(resp, err)
 
